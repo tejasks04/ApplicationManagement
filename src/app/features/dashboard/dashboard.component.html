@@ -1,0 +1,113 @@
+<div class="space-y-6">
+
+  <!-- Stat Cards -->
+  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <app-stat-card icon="👤" label="Total Users"        [value]="totalUsers()"    sub="All roles"                        color="bg-indigo-50" />
+    <app-stat-card icon="✅" label="Active Users"       [value]="activeUsers()"   sub="Currently active"                 color="bg-emerald-50" />
+    <app-stat-card icon="⛔" label="Inactive Users"     [value]="inactiveUsers()" sub="Needs attention"                  color="bg-red-50" />
+    <app-stat-card icon="🖥️" label="Total Applications" [value]="totalApps()"     [sub]="runningApps() + ' running'"    color="bg-amber-50" />
+  </div>
+
+  <!-- Weekly Activity Chart (CSS-based) -->
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div class="lg:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <h3 class="font-semibold text-gray-700 mb-4">Weekly User Activity</h3>
+      <div class="flex items-end justify-around h-44 gap-2">
+        @for (d of weeklyTrend; track d.day) {
+          <div class="flex flex-col items-center gap-1 flex-1">
+            <div class="w-full flex items-end justify-center gap-0.5 h-36">
+              <!-- Active bar -->
+              <div class="flex-1 bg-indigo-400 rounded-t transition-all"
+                   [style.height]="barHeight(d.active)"
+                   [title]="'Active: ' + d.active"></div>
+              <!-- Inactive bar -->
+              <div class="flex-1 bg-red-300 rounded-t transition-all"
+                   [style.height]="barHeight(d.inactive)"
+                   [title]="'Inactive: ' + d.inactive"></div>
+            </div>
+            <span class="text-xs text-gray-400">{{ d.day }}</span>
+          </div>
+        }
+      </div>
+      <div class="flex gap-4 mt-3 justify-center text-xs text-gray-500">
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-indigo-400 inline-block"></span> Active</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-red-300 inline-block"></span> Inactive</span>
+      </div>
+    </div>
+
+    <!-- Donut (CSS) -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+      <h3 class="font-semibold text-gray-700 mb-4 self-start">User Distribution</h3>
+      <div class="relative w-36 h-36">
+        <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f3f4f6" stroke-width="4"/>
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#6366f1" stroke-width="4"
+            [attr.stroke-dasharray]="(activeUsers() / totalUsers() * 100) + ' 100'"
+            stroke-linecap="round"/>
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#ef4444" stroke-width="4"
+            [attr.stroke-dasharray]="(inactiveUsers() / totalUsers() * 100) + ' 100'"
+            [attr.stroke-dashoffset]="-(activeUsers() / totalUsers() * 100)"
+            stroke-linecap="round"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-2xl font-bold text-gray-800">{{ totalUsers() }}</span>
+          <span class="text-xs text-gray-400">users</span>
+        </div>
+      </div>
+      <div class="flex gap-4 mt-4 text-xs text-gray-500">
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span> Active ({{ activeUsers() }})</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-400 inline-block"></span> Inactive ({{ inactiveUsers() }})</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users per App bar chart -->
+  <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+    <h3 class="font-semibold text-gray-700 mb-4">Users per Application</h3>
+    <div class="flex items-end justify-around h-44 gap-2">
+      @for (app of apps(); track app.id) {
+        <div class="flex flex-col items-center gap-1 flex-1">
+          <div class="w-full flex items-end justify-center gap-0.5 h-36">
+            <div class="flex-1 bg-indigo-400 rounded-t"
+                 [style.height]="barHeight(appUserCount(app.id))"
+                 [title]="'Total: ' + appUserCount(app.id)"></div>
+            <div class="flex-1 bg-emerald-400 rounded-t"
+                 [style.height]="barHeight(appActiveCount(app.id))"
+                 [title]="'Active: ' + appActiveCount(app.id)"></div>
+          </div>
+          <span class="text-xs text-gray-400 text-center leading-tight">{{ app.name.split(' ')[0] }}</span>
+        </div>
+      }
+    </div>
+    <div class="flex gap-4 mt-3 justify-center text-xs text-gray-500">
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-indigo-400 inline-block"></span> Total</span>
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-emerald-400 inline-block"></span> Active</span>
+    </div>
+  </div>
+
+  <!-- App grid -->
+  <div>
+    <h3 class="font-semibold text-gray-700 mb-3">All Applications</h3>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      @for (app of apps(); track app.id) {
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-2xl">{{ app.icon }}</span>
+            <app-badge [text]="app.status" />
+          </div>
+          <p class="font-semibold text-sm text-gray-800">{{ app.name }}</p>
+          <p class="text-xs text-gray-400">{{ app.category }}</p>
+          <div class="flex gap-3 text-xs text-gray-500 mt-1">
+            <span>👤 {{ appUserCount(app.id) }} users</span>
+            <span>✅ {{ appActiveCount(app.id) }} active</span>
+          </div>
+          <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-indigo-400 rounded-full transition-all"
+                 [style.width]="activeRatio(app.id) + '%'"></div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+</div>
