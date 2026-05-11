@@ -28,11 +28,22 @@
       }
     </div>
 
-    <button
-      (click)="openAdd()"
-      class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
-      + Add User
-    </button>
+    <div class="flex gap-2">
+
+      <!-- Context-aware report button -->
+      <button
+        (click)="generateReport()"
+        class="flex items-center gap-1.5 border border-emerald-300 text-emerald-700 bg-emerald-50 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-100 transition">
+        📊 Export {{ reportLabel() }} ({{ filteredUsers().length }})
+      </button>
+
+      <button
+        (click)="openAdd()"
+        class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
+        + Add User
+      </button>
+
+    </div>
   </div>
 
   <!-- Table -->
@@ -41,8 +52,10 @@
       <table class="w-full text-sm">
         <thead class="bg-gray-50 border-b border-gray-100">
           <tr>
-            @for (h of ['User','Email','Role','Status','Apps Access','Last Login','Actions']; track h) {
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ h }}</th>
+            @for (h of ['User','Email','Role','Status','Apps Access','Start Date','End Date','Last Login','Actions']; track h) {
+              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                {{ h }}
+              </th>
             }
           </tr>
         </thead>
@@ -53,10 +66,10 @@
               <!-- Name -->
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                  <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0">
                     {{ getInitials(u.name) }}
                   </div>
-                  <span class="font-medium text-gray-800">{{ u.name }}</span>
+                  <span class="font-medium text-gray-800 whitespace-nowrap">{{ u.name }}</span>
                 </div>
               </td>
 
@@ -81,7 +94,28 @@
                 </div>
               </td>
 
-              <td class="px-4 py-3 text-gray-400 text-xs">{{ u.lastLogin }}</td>
+              <!-- Start Date -->
+              <td class="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                @if (u.startDate) {
+                  <!-- {{ u.startDate | date:'dd MMM yyyy, HH:mm' }} -->
+                } @else {
+                  <span class="text-gray-300">—</span>
+                }
+              </td>
+
+              <!-- End Date -->
+              <td class="px-4 py-3 text-xs whitespace-nowrap">
+                @if (u.endDate) {
+                  <!-- <span [class]="isExpired(u.endDate) ? 'text-red-400' : 'text-gray-500'"> -->
+                    <!-- {{ u.endDate | date:'dd MMM yyyy, HH:mm' }} -->
+                  <!-- </span> -->
+                } @else {
+                  <span class="text-gray-300">—</span>
+                }
+              </td>
+
+              <td class="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{{ u.lastLogin }}</td>
+
               <td class="px-4 py-3">
                 <button
                   (click)="openEdit(u)"
@@ -92,6 +126,15 @@
 
             </tr>
           }
+
+          @if (filteredUsers().length === 0) {
+            <tr>
+              <td colspan="9" class="px-4 py-10 text-center text-sm text-gray-400">
+                No users match the current filters.
+              </td>
+            </tr>
+          }
+
         </tbody>
       </table>
     </div>
