@@ -1,4 +1,6 @@
-import { Component } from '@angular/core';
+// src/app/layout/header/header.component.ts
+import { Component, inject } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -7,5 +9,5 @@ import { Component } from '@angular/core';
   templateUrl: './header.component.html',
 })
 export class HeaderComponent {
-  currentUser = { name: 'Alice Johnson', role: 'Super Admin', initials: 'AJ' };
+  auth = inject(AuthService);
 }

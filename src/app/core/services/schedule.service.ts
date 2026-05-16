@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { ScheduleSlot } from '../models/schedule.model';
 
 const EXISTING_USERS = [
@@ -19,24 +19,6 @@ export class ScheduleService {
   private _schedule = signal<ScheduleSlot[]>(this.seedSlots());
 
   readonly schedule = this._schedule.asReadonly();
-
-  // Tick every minute so expiry status stays live
-  private now = signal(new Date());
-  private ticker = setInterval(() => this.now.set(new Date()), 60_000);
-
-  // Map of userName → isExpired, recomputed every minute
-  readonly expiryMap = computed(() => {
-    const now = this.now();
-    const map = new Map<string, boolean>();
-    for (const slot of this._schedule()) {
-      map.set(slot.userName, slot.expiryAt.getTime() <= now.getTime());
-    }
-    return map;
-  });
-
-  isExpired(userName: string): boolean {
-    return this.expiryMap().get(userName) ?? false;
-  }
 
   private seedSlots(): ScheduleSlot[] {
     const now = new Date();

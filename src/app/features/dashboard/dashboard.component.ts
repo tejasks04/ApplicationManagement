@@ -17,11 +17,12 @@ export class DashboardComponent {
   users  = this.userSvc.users;
   apps   = this.appSvc.apps;
 
-  totalUsers    = computed(() => this.users().length);
-  activeUsers   = computed(() => this.userSvc.activeUsers().length);
-  inactiveUsers = computed(() => this.userSvc.inactiveUsers().length);
-  totalApps     = computed(() => this.apps().length);
-  runningApps   = computed(() => this.apps().filter(a => a.status === 'active').length);
+  totalUsers     = computed(() => this.users().length);
+  activeUsers    = computed(() => this.userSvc.activeUsers().length);
+  inactiveUsers  = computed(() => this.userSvc.inactiveUsers().length);
+  scheduledUsers = computed(() => this.userSvc.scheduledUsers().length);
+  totalApps      = computed(() => this.apps().length);
+  runningApps    = computed(() => this.apps().filter(a => a.status === 'active').length);
 
   appUserCount   = (appId: number) => this.users().filter(u => u.apps.includes(appId)).length;
   appActiveCount = (appId: number) => this.users().filter(u => u.apps.includes(appId) && u.status === 'active').length;

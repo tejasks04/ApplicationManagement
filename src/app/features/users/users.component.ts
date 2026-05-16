@@ -9,14 +9,8 @@ import { BadgeComponent }  from '../../shared/components/badge/badge.component';
 import { UserModalComponent, ModalMode } from './user-model/user-modal.component';
 
 const BLANK_USER: Omit<User, 'id'> = {
-  name: '',
-  email: '',
-  role: 'user',
-  status: 'active',
-  apps: [],
-  lastLogin: 'Never',
-  startDate: undefined,
-  endDate: undefined,
+  name: '', email: '', role: 'user', status: 'active',
+  apps: [], lastLogin: 'Never', startDate: undefined, endDate: undefined,
 };
 
 @Component({
@@ -42,24 +36,20 @@ export class UsersComponent {
     const status = this.statusFilter();
 
     return this.users().filter(u => {
-      const matchSearch =
-        !q ||
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q);
-      const matchRole   = role   === 'all' || u.role   === role;
-      const matchStatus = status === 'all' || u.status === status;
+      const matchSearch  = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+      const matchRole    = role   === 'all' || u.role   === role;
+      const matchStatus  = status === 'all' || u.status === status;
       return matchSearch && matchRole && matchStatus;
     });
   });
 
-  // ── Report label shown on the button ────────────────────────────────────────
   reportLabel = computed(() => {
-    const s = this.statusFilter();
-    const r = this.roleFilter();
     const parts: string[] = [];
-    if (s !== 'all') parts.push(s);
-    if (r !== 'all') parts.push(r);
-    return parts.length ? parts.map(p => p[0].toUpperCase() + p.slice(1)).join(' + ') : 'All';
+    if (this.statusFilter() !== 'all') parts.push(this.statusFilter());
+    if (this.roleFilter()   !== 'all') parts.push(this.roleFilter());
+    return parts.length
+      ? parts.map(p => p[0].toUpperCase() + p.slice(1)).join(' + ')
+      : 'All';
   });
 
   modalMode = signal<ModalMode>('add');
@@ -67,6 +57,16 @@ export class UsersComponent {
   showModal = computed(() => this.modalUser() !== null);
 
   appName = (id: number) => this.appSvc.apps().find(a => a.id === id);
+
+  formatDate(date: string): string {
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+  }
+
+  isExpired(endDate: string): boolean {
+    return new Date(endDate) < new Date();
+  }
 
   openAdd(): void {
     this.modalMode.set('add');
@@ -87,37 +87,24 @@ export class UsersComponent {
 
       const appNames = user.apps
         .map(appId => this.appSvc.apps().find(a => a.id === appId)?.name)
-        .filter((name): name is string => !!name);
-
+        .filter((n): n is string => !!n);
       this.scheduleSvc.addUserSlot(user.name, appNames);
     }
-
     this.modalUser.set(null);
   }
 
-  onModalCancel(): void {
-    this.modalUser.set(null);
-  }
+  onModalCancel(): void { this.modalUser.set(null); }
 
-  updateModalUser(user: User): void {
-    this.modalUser.set(user);
-  }
+  updateModalUser(user: User): void { this.modalUser.set(user); }
 
   getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase();
+    return name.split(' ').map(p => p[0]).join('').toUpperCase();
   }
 
-  // ── Excel report ─────────────────────────────────────────────────────────────
-
   generateReport(): void {
-    const users  = this.filteredUsers();
+    const users   = this.filteredUsers();
     const allApps = this.appSvc.apps();
-
-    const fmt = (dt?: string) => dt ? new Date(dt).toLocaleString() : 'N/A';
+    const fmt     = (dt?: string) => dt ? new Date(dt).toLocaleDateString() : 'N/A';
 
     const duration = (start?: string, end?: string): string => {
       if (!start || !end) return 'N/A';
@@ -125,50 +112,34 @@ export class UsersComponent {
       if (ms <= 0) return 'Invalid';
       const d = Math.floor(ms / 86_400_000);
       const h = Math.floor((ms % 86_400_000) / 3_600_000);
-      const m = Math.floor((ms % 3_600_000) / 60_000);
-      return [d && `${d}d`, h && `${h}h`, m && `${m}m`].filter(Boolean).join(' ') || '< 1m';
+      return [d && `${d}d`, h && `${h}h`].filter(Boolean).join(' ') || '< 1h';
     };
 
     const resolveApps = (ids: number[]) =>
       ids.map(id => allApps.find(a => a.id === id))
-         .filter(Boolean)
-         .map(a => `${a!.icon} ${a!.name}`)
-         .join(', ') || 'None';
+         .filter(Boolean).map(a => `${a!.icon} ${a!.name}`).join(', ') || 'None';
 
-    // ── Sheet 1: User list ───────────────────────────────────────────────────
-    const statusLabel = this.statusFilter() !== 'all' ? this.statusFilter() : 'All Statuses';
-    const roleLabel   = this.roleFilter()   !== 'all' ? this.roleFilter()   : 'All Roles';
-
-    const listRows: (string | number)[][] = [
-      [`User Report — ${statusLabel} / ${roleLabel}`],
-      [`Generated: ${new Date().toLocaleString()}`, '', `Total users: ${users.length}`],
+    const listRows = [
+      [`User Report — ${this.reportLabel()}`],
+      [`Generated: ${new Date().toLocaleString()}`, '', `Total: ${users.length}`],
       [],
-      ['#', 'Name', 'Email', 'Role', 'Status', 'Start Date', 'End Date', 'Duration', 'Last Login', 'Apps'],
+      ['#','Name','Email','Role','Status','Start Date','End Date','Duration','Last Login','Apps'],
       ...users.map((u, i) => [
-        i + 1,
-        u.name,
-        u.email,
-        u.role,
-        u.status,
-        fmt(u.startDate),
-        fmt(u.endDate),
+        i+1, u.name, u.email, u.role, u.status,
+        fmt(u.startDate), fmt(u.endDate),
         duration(u.startDate, u.endDate),
-        u.lastLogin,
-        resolveApps(u.apps),
+        u.lastLogin, resolveApps(u.apps),
       ]),
     ];
 
     const listSheet = XLSX.utils.aoa_to_sheet(listRows);
     listSheet['!cols'] = [
-      { wch: 4 }, { wch: 20 }, { wch: 28 }, { wch: 8 },
-      { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 14 },
-      { wch: 18 }, { wch: 40 },
+      {wch:4},{wch:20},{wch:28},{wch:8},{wch:12},
+      {wch:14},{wch:14},{wch:12},{wch:18},{wch:40},
     ];
-    listSheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
+    listSheet['!merges'] = [{s:{r:0,c:0},e:{r:0,c:9}}];
 
-    // ── Sheet 2: Summary by role & status ────────────────────────────────────
     const all = this.users();
-
     const count = (role: string, status: string) =>
       all.filter(u =>
         (role   === 'all' || u.role   === role) &&
@@ -176,37 +147,24 @@ export class UsersComponent {
       ).length;
 
     const summaryRows = [
-      ['Summary'],
-      [],
-      ['',        'Active',              'Inactive',              'Total'],
-      ['Admin',   count('admin','active'), count('admin','inactive'), count('admin','all')],
-      ['User',    count('user','active'),  count('user','inactive'),  count('user','all')],
-      ['Total',   count('all','active'),   count('all','inactive'),   count('all','all')],
+      ['Summary'], [],
+      ['',       'Active',                'Inactive',                'Scheduled',                 'Total'],
+      ['Admin',  count('admin','active'), count('admin','inactive'), count('admin','scheduled'),  count('admin','all')],
+      ['User',   count('user','active'),  count('user','inactive'),  count('user','scheduled'),   count('user','all')],
+      ['Total',  count('all','active'),   count('all','inactive'),   count('all','scheduled'),    count('all','all')],
     ];
 
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
-    summarySheet['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }];
-    summarySheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
+    summarySheet['!cols'] = [{wch:12},{wch:12},{wch:12},{wch:14},{wch:10}];
+    summarySheet['!merges'] = [{s:{r:0,c:0},e:{r:0,c:4}}];
 
-    // ── Sheet 3: Per-user app access breakdown ────────────────────────────────
-    const appHeaders = ['Name', 'Role', 'Status', ...allApps.map(a => `${a.icon} ${a.name}`)];
     const appRows = [
-      appHeaders,
-      ...users.map(u => [
-        u.name,
-        u.role,
-        u.status,
-        ...allApps.map(a => u.apps.includes(a.id) ? '✓' : ''),
-      ]),
+      ['Name','Role','Status',...allApps.map(a=>`${a.icon} ${a.name}`)],
+      ...users.map(u=>[u.name,u.role,u.status,...allApps.map(a=>u.apps.includes(a.id)?'✓':'')]),
     ];
-
     const appSheet = XLSX.utils.aoa_to_sheet(appRows);
-    appSheet['!cols'] = [
-      { wch: 20 }, { wch: 8 }, { wch: 10 },
-      ...allApps.map(() => ({ wch: 16 })),
-    ];
+    appSheet['!cols'] = [{wch:20},{wch:8},{wch:12},...allApps.map(()=>({wch:16}))];
 
-    // ── Assemble workbook ─────────────────────────────────────────────────────
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, listSheet, 'User List');
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
